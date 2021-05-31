@@ -13,9 +13,8 @@ class SebatNet:
     def __init__(self):
         options = SessionOptions()
         options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
-        options.add_session_config_entry("session.load_model_format", "ORT")
-        self.face_model = InferenceSession("model/slim-facedetect.ort", options)
-        self.smoke_model = InferenceSession("model/smoke-detect.onnx")
+        self.face_model = InferenceSession("model/slim-facedetect.onnx", options)
+        self.smoke_model = InferenceSession("model/smoke-detect.onnx", options)
         self.face_inputname = self.face_model.get_inputs()[0].name
         self.smoke_inputname = self.smoke_model.get_inputs()[0].name
 
@@ -80,15 +79,11 @@ class SebatNet:
 
         # Preprocessing for smoke detection model (frame)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
-        img_gray = np.zeros_like(img)
-        img_gray[:, :, 0] = gray
-        img_gray[:, :, 1] = gray
-        img_gray[:, :, 2] = gray
-
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
+            
             # Preprocessing for smoke detection model (face)
-            face = img_gray[startY:endY, startX:endX]
+            face = gray[startY:endY, startX:endX]
             try:
                 face = cv2.resize(face, (32, 32))
             except cv2.error as e:
