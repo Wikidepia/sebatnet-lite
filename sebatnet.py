@@ -79,21 +79,20 @@ class SebatNet:
 
         # Preprocessing for smoke detection model (frame)
         gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = gray.astype("float") / 255.0
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
             
             # Preprocessing for smoke detection model (face)
             face = gray[startY:endY, startX:endX]
-            try:
-                face = cv2.resize(face, (32, 32))
-            except cv2.error as e:
+            if face.size == 0: # Clamping x, y is probably better
                 continue
-            face = face.astype("float") / 255.0
+            face = cv2.resize(face, (32, 32))
             face = img_to_array(face)
             face = np.expand_dims(face, axis=0)
             predicted = self.smoke_model.run(None, {self.smoke_inputname: face})
-            ids = np.argmax(predicted)
+            predicted_id = np.argmax(predicted)
             ret.append(
-                {"coords": (startX, startY, endX, endY), "is_smoking": bool(ids)}
+                {"coords": (startX, startY, endX, endY), "is_smoking": bool(predicted_id)}
             )
         return ret
