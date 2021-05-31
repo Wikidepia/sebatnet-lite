@@ -10,7 +10,8 @@ if len(sys.argv) != 2:
     raise SystemExit
 
 sebatnet = SebatNet()
-vid_capture = cv2.VideoCapture(sys.argv[1])
+source = sys.argv[1] if sys.argv[1] != "0" else 0
+vid_capture = cv2.VideoCapture(source)
 prev_frame_time = 0
 
 while True:
