@@ -27,7 +27,7 @@ while True:
     for smoker in smokers:
         (startX, startY, endX, endY) = smoker["coords"]
         label = "Smoking" if smoker["is_smoking"] else "Not Smoking"
-
+        color = (0, 0, 255) if smoker["is_smoking"] else (0, 255, 0)
         cv2.putText(
             orig_image,
             label,
@@ -38,7 +38,7 @@ while True:
             2,
         )
 
-        cv2.rectangle(orig_image, (startX, startY), (endX, endY), (255, 255, 0), 4)
+        cv2.rectangle(orig_image, (startX, startY), (endX, endY), color, 4)
 
     fps = str(round(fps))
     # puting the FPS count on the frame
