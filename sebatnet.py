@@ -1,8 +1,5 @@
-import time
-
-import cv2
 import numpy as np
-from keras_preprocessing.image import img_to_array
+from cv2 import resize
 from onnxruntime import (GraphOptimizationLevel, InferenceSession,
                          SessionOptions)
 
@@ -60,13 +57,17 @@ class SebatNet:
             picked_box_probs[:, 4],
         )
 
+    def rgb2gray(self, rgb):
+        return np.dot(rgb[..., :3], [0.2989, 0.5870, 0.1140])
+
     def find_smokers(self, img):
         ret = []
-        threshold = 0.7
+        threshold = 0.9
         image_mean = np.array([127, 127, 127])
 
-        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (320, 240))
+        # Squeeze every performance
+        image = img[..., ::-1]  # BGR to RGB
+        image = resize(image, (320, 240))
         image = (image - image_mean) / 128
         image = np.transpose(image, [2, 0, 1])
         image = np.expand_dims(image, axis=0)
@@ -78,21 +79,25 @@ class SebatNet:
         )
 
         # Preprocessing for smoke detection model (frame)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = self.rgb2gray(img)
         gray = gray.astype("float") / 255.0
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
-            
+
             # Preprocessing for smoke detection model (face)
             face = gray[startY:endY, startX:endX]
-            if face.size == 0: # Clamping x, y is probably better
+            if face.size == 0:  # Clamping x, y is probably better
                 continue
-            face = cv2.resize(face, (32, 32))
-            face = img_to_array(face)
+            face = resize(face, (32, 32))
+            face = np.asarray(face, dtype="float32")
+            face = face.reshape((face.shape[0], face.shape[1], 1))
             face = np.expand_dims(face, axis=0)
             predicted = self.smoke_model.run(None, {self.smoke_inputname: face})
             predicted_id = np.argmax(predicted)
             ret.append(
-                {"coords": (startX, startY, endX, endY), "is_smoking": bool(predicted_id)}
+                {
+                    "coords": (startX, startY, endX, endY),
+                    "is_smoking": bool(predicted_id),
+                }
             )
         return ret
