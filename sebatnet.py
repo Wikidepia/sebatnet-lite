@@ -88,7 +88,7 @@ class SebatNet:
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
             # Preprocessing for smoke detection model (face)
-            face = img_gray[startX:endX, startY:endY]
+            face = img_gray[startY:endY, startX:endX]
             try:
                 face = cv2.resize(face, (32, 32))
             except cv2.error as e:
