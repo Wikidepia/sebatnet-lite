@@ -1,8 +1,5 @@
-import time
-
 import cv2
 import numpy as np
-from keras_preprocessing.image import img_to_array
 from onnxruntime import (GraphOptimizationLevel, InferenceSession,
                          SessionOptions)
 
@@ -82,17 +79,21 @@ class SebatNet:
         gray = gray.astype("float") / 255.0
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
-            
+
             # Preprocessing for smoke detection model (face)
             face = gray[startY:endY, startX:endX]
-            if face.size == 0: # Clamping x, y is probably better
+            if face.size == 0:  # Clamping x, y is probably better
                 continue
             face = cv2.resize(face, (32, 32))
-            face = img_to_array(face)
+            face = np.asarray(face, dtype="float32")
+            face = face.reshape((face.shape[0], face.shape[1], 1))
             face = np.expand_dims(face, axis=0)
             predicted = self.smoke_model.run(None, {self.smoke_inputname: face})
             predicted_id = np.argmax(predicted)
             ret.append(
-                {"coords": (startX, startY, endX, endY), "is_smoking": bool(predicted_id)}
+                {
+                    "coords": (startX, startY, endX, endY),
+                    "is_smoking": bool(predicted_id),
+                }
             )
         return ret
