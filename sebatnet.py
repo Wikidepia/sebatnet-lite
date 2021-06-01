@@ -62,8 +62,8 @@ class SebatNet:
         threshold = 0.7
         image_mean = np.array([127, 127, 127])
 
-        image = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        image = cv2.resize(image, (320, 240))
+        rgb_image = img[..., ::-1]
+        image = cv2.resize(rgb_image, (320, 240))
         image = (image - image_mean) / 128
         image = np.transpose(image, [2, 0, 1])
         image = np.expand_dims(image, axis=0)
@@ -75,8 +75,9 @@ class SebatNet:
         )
 
         # Preprocessing for smoke detection model (frame)
-        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        gray = rgb_image[..., :3] @ [0.299, 0.587, 0.114]
         gray = gray.astype("float") / 255.0
+        gray = np.asarray(gray, dtype="float32")
         for i in range(boxes.shape[0]):
             (startX, startY, endX, endY) = boxes[i, :]
 
@@ -84,11 +85,9 @@ class SebatNet:
             face = gray[startY:endY, startX:endX]
             if face.size == 0:  # Clamping x, y is probably better
                 continue
-            face = cv2.resize(face, (32, 32))
-            face = np.asarray(face, dtype="float32")
+            face = cv2.resize(face, (32, 32), interpolation=cv2.INTER_NEAREST)
             face = face.reshape((face.shape[0], face.shape[1], 1))
-            face = np.expand_dims(face, axis=0)
-            predicted = self.smoke_model.run(None, {self.smoke_inputname: face})
+            predicted = self.smoke_model.run(None, {self.smoke_inputname: [face]})
             predicted_id = np.argmax(predicted)
             ret.append(
                 {
