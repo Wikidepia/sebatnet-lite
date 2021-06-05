@@ -18,8 +18,8 @@ while True:
     ret, orig_image = vid_capture.read()
     if orig_image is None:
         break
-
-    smokers = sebatnet.find_smokers(orig_image)
+    rgb_image = orig_image[..., ::-1]
+    smokers = sebatnet.find_smokers(rgb_image)
     new_frame_time = time.time()
     fps = 1 / (new_frame_time - prev_frame_time)
     prev_frame_time = new_frame_time
@@ -34,7 +34,7 @@ while True:
             (startX, startY - 10),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.5,
-            (0, 0, 255),
+            color,
             2,
         )
 

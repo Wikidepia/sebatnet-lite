@@ -62,8 +62,7 @@ class SebatNet:
         threshold = 0.7
         image_mean = np.array([127, 127, 127])
 
-        rgb_image = img[..., ::-1]
-        image = cv2.resize(rgb_image, (320, 240))
+        image = cv2.resize(img, (320, 240))
         image = (image - image_mean) / 128
         image = np.transpose(image, [2, 0, 1])
         image = np.expand_dims(image, axis=0)
@@ -75,7 +74,7 @@ class SebatNet:
         )
 
         # Preprocessing for smoke detection model (frame)
-        gray = rgb_image[..., :3] @ [0.299, 0.587, 0.114]
+        gray = img[..., :3] @ [0.299, 0.587, 0.114]
         gray = gray.astype("float") / 255.0
         gray = np.asarray(gray, dtype="float32")
         for i in range(boxes.shape[0]):
