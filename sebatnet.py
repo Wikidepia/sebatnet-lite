@@ -7,13 +7,25 @@ import box_utils_numpy
 
 
 class SebatNet:
-    def __init__(self):
+    def __init__(self, tvm=False):
         options = SessionOptions()
         options.graph_optimization_level = GraphOptimizationLevel.ORT_ENABLE_ALL
-        self.face_model = InferenceSession("model/slim-facedetect.onnx", options)
+        self.tvm = tvm
+        if self.tvm:
+            self.load_tvm()
+        else:
+            self.face_model = InferenceSession("model/slim-facedetect.onnx", options)
+            self.face_inputname = self.face_model.get_inputs()[0].name
         self.smoke_model = InferenceSession("model/smoke-detect.onnx", options)
-        self.face_inputname = self.face_model.get_inputs()[0].name
         self.smoke_inputname = self.smoke_model.get_inputs()[0].name
+
+    def load_tvm(self):
+        import tvm
+        from tvm.contrib import graph_executor
+
+        device = tvm.cpu()
+        fd_lib = tvm.runtime.load_module("model/version-slim-320.so")
+        self.face_model = graph_executor.GraphModule(fd_lib["default"](device))
 
     def find_boxes(
         self,
@@ -68,7 +80,12 @@ class SebatNet:
         image = np.expand_dims(image, axis=0)
         image = image.astype(np.float32)
 
-        confidences, boxes = self.face_model.run(None, {self.face_inputname: image})
+        if self.tvm:
+            self.face_model.run(input=image)
+            confidences = self.face_model.get_output(0).asnumpy()
+            boxes = self.face_model.get_output(1).asnumpy()
+        else:
+            confidences, boxes = self.face_model.run(None, {self.face_inputname: image})
         boxes, _, _ = self.find_boxes(
             img.shape[1], img.shape[0], confidences, boxes, threshold
         )
@@ -84,9 +101,10 @@ class SebatNet:
             face = gray[startY:endY, startX:endX]
             if face.size == 0:  # Clamping x, y is probably better
                 continue
-            face = cv2.resize(face, (32, 32), interpolation=cv2.INTER_NEAREST)
+            face = cv2.resize(face, (32, 32))
             face = face.reshape((face.shape[0], face.shape[1], 1))
-            predicted = self.smoke_model.run(None, {self.smoke_inputname: [face]})
+            face = np.expand_dims(face, axis=0)
+            predicted = self.smoke_model.run(None, {self.smoke_inputname: face})
             predicted_id = np.argmax(predicted)
             ret.append(
                 {
