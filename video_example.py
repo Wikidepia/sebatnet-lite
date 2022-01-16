@@ -54,6 +54,6 @@ while True:
     )
 
     orig_image = cv2.resize(orig_image, (0, 0), fx=0.7, fy=0.7)
-    cv2.imshow(f"SMOKING_DETECTOR", orig_image)
+    cv2.imshow('SMOKING_DETECTOR', orig_image)
     if cv2.waitKey(1) & 0xFF == ord("q"):
         break
